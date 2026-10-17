@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BRD Interview Agent | Live Voice Discovery</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <div class="app-container">
+    <!-- Top Minimalist Header -->
+    <header class="top-nav">
+      <div class="brand">
+        <div class="status-dot pulse"></div>
+        <div class="brand-text">
+          <span class="title">BRD AGENT</span>
+          <span class="subtitle">GROQ (PRIMARY) + GEMINI (FALLBACK) • SARVAM (SAARAS ASR & BULBUL TTS)</span>
+        </div>
+      </div>
+      <div class="header-actions">
+        <div class="lang-picker">
+          <label for="lang-select" class="picker-label">Language:</label>
+          <select id="lang-select" class="dropdown-select">
+            <option value="auto" selected>Auto-Detect Code-Mixed</option>
+            <option value="ta-IN">Tamil / Tanglish (ta-IN)</option>
+            <option value="hi-IN">Hindi / Hinglish (hi-IN)</option>
+            <option value="en-IN">Indian English (en-IN)</option>
+          </select>
+        </div>
+        <label class="toggle-btn" id="tts-toggle-btn" title="Toggle Sarvam Voice Playback">
+          <input type="checkbox" id="tts-toggle" checked>
+          <span class="toggle-slider"></span>
+          <span class="toggle-label">Sarvam Voice</span>
+        </label>
+        <button class="btn btn-outline" id="export-btn" title="Export as Markdown Document">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Export BRD
+        </button>
+        <button class="btn btn-outline" id="copy-json-btn" title="Copy raw BRD JSON">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+          Copy JSON
+        </button>
+        <button class="btn btn-danger-outline" id="reset-btn" title="Start New Session">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg>
+          Reset
+        </button>
+      </div>
+    </header>
+
+    <!-- Main Workspace -->
+    <main class="main-layout">
+      <!-- Left Column: Voice & Conversation Stream -->
+      <section class="chat-column">
+        <div class="panel-header">
+          <span class="panel-title">INTERVIEW TRANSCRIPT</span>
+          <span class="session-badge" id="session-badge">Session: Initializing...</span>
+        </div>
+
+        <div class="chat-messages" id="chat-messages">
+          <div class="message system-msg">
+            <div class="msg-meta">System</div>
+            <div class="msg-body">
+              Welcome to the <strong>Voice-Based BRD Interview Agent</strong>.
+              Speak naturally or type your requirements (supports English, Hinglish, Tanglish).
+              The engine automatically maps requirements and infers implicit non-functional constraints.
+            </div>
+          </div>
+          <div class="message assistant-msg">
+            <div class="msg-meta">Business Analyst Agent</div>
+            <div class="msg-body">
+              Namaste / Vanakkam / Hello! Main aapka Business Requirements Document (BRD) prepare karne me help karunga. What project are we building today?
+            </div>
+          </div>
+        </div>
+
+        <!-- Quick Starters -->
+        <div class="quick-prompts">
+          <span class="quick-label">Try quick prompts:</span>
+          <button class="prompt-chip" data-text="Naan oru small business vechurukken, products sell pandren, aana en customers order pandradhukku app venum.">Small Business App (Tanglish)</button>
+          <button class="prompt-chip" data-text="Hum ek quick commerce app bana rahe hain Bangalore ke liye. Diwali pe 10x traffic spike hota hai.">Diwali 10x traffic spike (Hinglish)</button>
+          <button class="prompt-chip" data-text="Users should log in using phone OTP. Only managers can approve refunds above Rs 5000.">RBAC Refund approvals</button>
+          <button class="prompt-chip" data-text="Customer data must strictly stay within Indian servers for DPDP compliance.">DPDP Data Sovereignty</button>
+        </div>
+
+        <!-- Audio & Text Input Bar -->
+        <div class="input-area">
+          <div class="input-container">
+            <button class="mic-btn" id="mic-btn" title="Speak to Agent (Click to Talk)">
+              <svg class="mic-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+                <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+                <line x1="12" y1="19" x2="12" y2="23"/>
+                <line x1="8" y1="23" x2="16" y2="23"/>
+              </svg>
+              <div class="mic-pulse"></div>
+            </button>
+            <textarea id="user-input" rows="1" placeholder="Type or click mic to speak (e.g. 'Hum Bangalore me grocery delivery app launch kar rahe hain...')" autofocus></textarea>
+            <button class="send-btn" id="send-btn" title="Send Turn">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="22" y1="2" x2="11" y2="13"/>
+                <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+              </svg>
+            </button>
+          </div>
+          <div class="mic-status" id="mic-status">Mic idle. Click microphone or press Enter to send.</div>
+        </div>
+      </section>
+
+      <!-- Right Column: Live BRD State Inspector -->
+      <section class="brd-column">
+        <div class="panel-header">
+          <div class="panel-title-group">
+            <span class="panel-title">LIVE BRD SPECIFICATION</span>
+            <div class="action-pill probe" id="action-indicator">ACTION: PROBE</div>
+          </div>
+          <div class="view-switch">
+            <button class="view-tab active" data-tab="cards">Structured</button>
+            <button class="view-tab" data-tab="json">Raw JSON</button>
+          </div>
+        </div>
+
+        <!-- Structured Cards View -->
+        <div class="tab-content active" id="cards-view">
+          <!-- 1. Objective -->
+          <div class="brd-card">
+            <div class="card-head">
+              <span class="card-num">01</span>
+              <span class="card-title">OBJECTIVE</span>
+            </div>
+            <div class="card-body" id="val-objective">
+              <span class="placeholder-text">Awaiting initial business goal...</span>
+            </div>
+          </div>
+
+          <!-- 2. Stakeholders -->
+          <div class="brd-card">
+            <div class="card-head">
+              <span class="card-num">02</span>
+              <span class="card-title">STAKEHOLDERS</span>
+              <span class="count-badge" id="count-stakeholders">0</span>
+            </div>
+            <div class="card-body">
+              <ul class="spec-list" id="val-stakeholders">
+                <li class="placeholder-item">No stakeholders identified yet</li>
+              </ul>
+            </div>
+          </div>
+
+          <!-- 3. Scope -->
+          <div class="brd-card">
+            <div class="card-head">
+              <span class="card-num">03</span>
+              <span class="card-title">SCOPE BOUNDARIES</span>
+            </div>
+            <div class="card-body scope-grid">
+              <div class="scope-box">
+                <span class="scope-label in">IN SCOPE (<span id="count-scope-in">0</span>)</span>
+                <ul class="spec-list" id="val-scope-in">
+                  <li class="placeholder-item">No items in scope</li>
+                </ul>
+              </div>
+              <div class="scope-box">
+                <span class="scope-label out">OUT OF SCOPE (<span id="count-scope-out">0</span>)</span>
+                <ul class="spec-list" id="val-scope-out">
+                  <li class="placeholder-item">No exclusions specified</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          <!-- 4. Functional Requirements -->
+          <div class="brd-card">
+            <div class="card-head">
+              <span class="card-num">04</span>
+              <span class="card-title">FUNCTIONAL REQUIREMENTS</span>
+              <span class="count-badge" id="count-functional">0</span>
+            </div>
+            <div class="card-body">
+              <ul class="spec-list numbered" id="val-functional">
+                <li class="placeholder-item">Awaiting functional workflows...</li>
+              </ul>
+            </div>
+          </div>
+
+          <!-- 5. Non-Functional Requirements -->
+          <div class="brd-card highlight-card">
+            <div class="card-head">
+              <span class="card-num">05</span>
+              <span class="card-title">NON-FUNCTIONAL & IMPLIED REQS</span>
+              <span class="count-badge" id="count-non-functional">0</span>
+            </div>
+            <div class="card-body">
+              <ul class="spec-list numbered" id="val-non-functional">
+                <li class="placeholder-item">Implied scalability, latency, SLA requirements will appear here...</li>
+              </ul>
+            </div>
+          </div>
+
+          <!-- 6. Constraints -->
+          <div class="brd-card">
+            <div class="card-head">
+              <span class="card-num">06</span>
+              <span class="card-title">CONSTRAINTS</span>
+              <span class="count-badge" id="count-constraints">0</span>
+            </div>
+            <div class="card-body">
+              <ul class="spec-list" id="val-constraints">
+                <li class="placeholder-item">No compliance, budget or timeline constraints recorded</li>
+              </ul>
+            </div>
+          </div>
+
+          <!-- 7. Open Questions -->
+          <div class="brd-card">
+            <div class="card-head">
+              <span class="card-num">07</span>
+              <span class="card-title">OPEN QUESTIONS</span>
+              <span class="count-badge" id="count-questions">0</span>
+            </div>
+            <div class="card-body">
+              <ul class="spec-list" id="val-open-questions">
+                <li class="placeholder-item">No unresolved questions</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <!-- Raw JSON View -->
+        <div class="tab-content" id="json-view">
+          <pre class="json-viewer" id="json-pre"><code>{}</code></pre>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>
